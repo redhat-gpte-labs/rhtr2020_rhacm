@@ -23,10 +23,10 @@ Each of these sections is covered in a separate lab.
 Here is some important information about your environment:
 
 * Your GUID is: *%guid%*
-* Your OpenShift and Gitea username is: *%ocp_username%*
+* Your OpenShift username is: *%ocp_username%*
 * Your OpenShift password is your OpenTLC Password
-* Your Gitea password is %gitea_password%
 
 * To log into OpenShift use the following command: *%login_command%*
 * The OpenShift Web Console is at: *%web_console_url%*
+* The RHACM Console is at: *%rhacm_console_url%*
 ====
