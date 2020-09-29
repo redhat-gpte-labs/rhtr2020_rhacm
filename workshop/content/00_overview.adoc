@@ -1,0 +1,39 @@
+:guid: %guid%
+:user: %user%
+:markup-in-source: verbatim,attributes,quotes
+
+== Overview
+
+The labs in this course cover many of the basic functions of RHACM.
+As you learned in the previous module, RHACM allows you to manage many Kubernetes clusters from a single location.
+While the concept of a stretch cluster is something that is often requested, the complexity and potential problems that come with it due to conditions that are beyond the cluster's control--such as network latencies--usually outweigh the perceived benefits.
+The preferred approach is multiple clusters--which can be large or small--that are centrally managed.
+Red Hat Advanced Cluster Management provides this functionality and more.
+
+Within the RHACM web console, there are four main sections that you use to manage different aspects of your Kubernetes clusters and workloads.
+
+image:acm_four_sections.png[width=100%]
+
+Each of these sections is covered in a separate lab.
+
+=== Lab Access
+
+You can access your lab environment as {user} with password "{ssh_password}" with the following command:
+
+[source,bash,options="nowrap",subs="{markup-in-source}"]
+----
+%ssh_command%
+----
+
+Your lab GUID is "{guid}".
+
+An example var was set to %example_var%.
+
+=== Workshop Information
+
+Informational messages generated for your workshop:
+
+[source,bash,options="nowrap"]
+----
+%user_info_messages%
+----
