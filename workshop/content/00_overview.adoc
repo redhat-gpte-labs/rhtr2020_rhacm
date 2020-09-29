@@ -16,24 +16,17 @@ image:acm_four_sections.png[width=100%]
 
 Each of these sections is covered in a separate lab.
 
-=== Lab Access
+== User Information
 
-You can access your lab environment as {user} with password "{ssh_password}" with the following command:
+[NOTE]
+====
+Here is some important information about your environment:
 
-[source,bash,options="nowrap",subs="{markup-in-source}"]
-----
-%ssh_command%
-----
+* Your GUID is: *%guid%*
+* Your OpenShift and Gitea username is: *%ocp_username%*
+* Your OpenShift password is your OpenTLC Password
+* Your Gitea password is %gitea_password%
 
-Your lab GUID is "{guid}".
-
-An example var was set to %example_var%.
-
-=== Workshop Information
-
-Informational messages generated for your workshop:
-
-[source,bash,options="nowrap"]
-----
-%user_info_messages%
-----
+* To log into OpenShift use the following command: *%login_command%*
+* The OpenShift Web Console is at: *%web_console_url%*
+====

@@ -9,6 +9,11 @@ RUN rm -rf /tmp/src/.git* && \
     chgrp -R 0 /tmp/src && \
     chmod -R g+w /tmp/src
 
+# Update OpenShift Client
+RUN wget -O /tmp/oc.tar.gz https://mirror.openshift.com/pub/openshift-v4/clients/ocp/${OCP_CLIENT_RELEASE}/openshift-client-linux-${OCP_CLIENT_RELEASE}.tar.gz && \
+    tar xzf /tmp/oc.tar.gz -C /opt/workshop/bin && \
+    rm -f /tmp/oc.tar.gz
+
 USER 1001
 
 RUN /usr/libexec/s2i/assemble
