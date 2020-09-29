@@ -1,16 +1,16 @@
 ---
 modules:
-  overview:
+  00_overview:
     name: Overview
     exit_sign: Continue
-  exercise1:
-    name: Exercise 1
+  01_cluster_lifecycle:
+    name: Cluster Lifecycle
     exit_sign: Continue
-  exercise2:
-    name: Exercise 2
+  02_application_lifecycle:
+    name: Application Lifecycle
     exit_sign: Continue
-  exercise3:
-    name: Exercise 3
+  03_GRC:
+    name: GRC
     exit_sign: Continue
-  review:
+  04_review:
     name: Review

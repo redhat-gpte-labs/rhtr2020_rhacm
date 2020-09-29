@@ -1,9 +1,9 @@
 ---
-name: Bookbag Template
+name: RHTR RHACM
 modules:
   activate:
-    - overview
-    - exercise1
-    - exercise2
-    - exercise3
-    - review
+    - 00_overview
+    - 01_cluster_lifecycle
+    - 02_application_lifecycle
+    - 03_GRC
+    - 04_review
