@@ -1,0 +1,438 @@
+:guid: %guid%
+:user: %user%
+:markup-in-source: verbatim,attributes,quote
+
+== Cluster Lifecycle Lab
+
+In this lab, you explore the Cluster Lifecycle capabilities of Red Hat^(R)^ Advanced Cluster Management for Kubernetes (RHACM).
+
+.Goals
+* Understand the functions of _hub_ and _managed_ clusters
+* Understand Cluster Lifecycle capabilities
+* Import an OpenShift^(R)^ cluster to RHACM
+* Upgrade an OpenShift cluster from RHACM (optional)
+
+
+== Introduction
+The labs in this course cover many of the basic functions of RHACM.
+As you learned in the previous module, RHACM allows you to manage many Kubernetes clusters from a single location.
+While the concept of a stretch cluster is something that is often requested, the complexity and potential problems that come with it due to conditions that are beyond the cluster's control--such as network latencies--usually outweigh the perceived benefits.
+The preferred approach is multiple clusters--which can be large or small--that are centrally managed.
+Red Hat Advanced Cluster Management provides this functionality and more.
+
+Within the RHACM web console, there are four main sections that you use to manage different aspects of your Kubernetes clusters and workloads.
+
+image:acm_four_sections.png[width=100%]
+
+Each of these sections is covered in a separate lab.
+This lab focuses on the _Cluster Lifecycle_ functionality.
+
+=== Review Architecture
+
+In this lab environment, you have three OpenShift clusters provisioned and each one has a specific role.
+
+image:RHACM-arch.png[width=100%]
+
+Your _hub_ cluster only does one thing--it runs RHACM.
+All of the RHACM components that provide functionality for the Cluster Lifecycle, Application Lifecycle, and Governance, Risk, and Compliance (GRC) features run on this cluster.
+Your _hub_ cluster _cannot_ be _managed_.
+If you were to try to add the _hub_ cluster as a _managed_ cluster, you would see an error message and that action would be prevented.
+Do not attempt this. Later versions of RHACM will allow you to manage the Hub clusters.
+
+Your _managed_ cluster also does one thing--it runs your workloads.
+Customer application workloads are obviously going to run here, but _managed_ clusters also run the RHACM endpoint components.
+These endpoint components are deployed as Pods and scheduled to run on nodes in the cluster just as any other application would.
+
+RHACM employs a pull-based architectural model that relies on an agent in the cluster joining an external management plane.
+This architecture has emerged across the Kubernetes and GitOps ecosystem, and it is where Red Hat has focused its upstream and product investments.
+The endpoint that you deploy onto the _managed_ cluster communicates with RHACM running on the _hub_ cluster.
+
+While a _managed_ cluster can be either OpenShift or another flavor of Kubernetes, the _hub_ cluster can only be deployed on OpenShift.
+In this lab, all three clusters are deployed in different supported cloud providers.
+The cloud provider may be different depending on when and where you are doing this lab.
+This does not really matter because everything in the cloud provider that you need is abstracted for you by OpenShift.
+
+The second cluster you will be building from scratch, we will provide you with the credentials to configure AWS and you will provision it using RHACM.
+
+The third and final cluster will used for importing an existing cluster. All of these clusters are the same size.
+Each one has three master nodes to provide a highly available control plane.
+They also both have two worker nodes that run the workloads.
+
+=== Review Cluster Lifecycle Functionality
+
+The Cluster Lifecycle feature in RHACM allows you to manage the deployment, deletion, importing, and upgrading of your Kubernetes clusters within the following parameters:
+
+* Deploying new OpenShift clusters to supported platforms.
+This includes Amazon Web Services, Microsoft Azure, and Google Cloud.
+Bare metal is included as a tech preview feature.
+* Deleting or destroying an OpenShift cluster that was deployed by RHACM.
+You cannot destroy a cluster that you imported, but you can remove it from RHACM if you no longer want to manage it.
+* Importing existing Kubernetes clusters.
+This is not limited to any specific platforms.
+* Upgrading _managed_ OpenShift clusters.
+
+For deploying a new cluster you can use either a UI wizard or a YAML file when defining your deployment, or a combination of both.
+You can define most of your deployment in the wizard and then modify the YAML file to adjust the items that are not exposed in the UI elements.
+
+image:acm_cluster_lifecycle_create_cluster.gif[]
+
+Underneath, _Hive_ (not covered here) is used to orchestrate the deployment of the cluster.
+When a deployment completes, you are provided with the connection information and the credentials to connect to your new cluster.
+
+=== Consider Personas
+
+When you think about Cluster Lifecycle features, consider these personas and their needs:
+
+[options=header,cols="1,3"]
+|====
+|Persona
+|Need
+|IT Operations
+a|* How do I get a simplified understanding of my cluster health and the impact it may have on my application availability?
+* How do I automate provisioning and deprovisioning of my clusters?
+|DevOps/SRE
+a|* How can I manage the life cycle of multiple clusters regardless of where they reside (on-premises or across public clouds) using a single control plane?
+|====
+
+== Building a Cluster in RHACM
+
+The labs in this course require you to perform several tasks through the RHACM console.
+Because RHACM has been provisioned for you, follow the steps below to retrieve the information you need to perform the tasks.
+
+. Use the URL from your provisioning email to navigate to the RHACM console in a web browser.
++
+[NOTE]
+====
+The URL is specific to your environment because you are using dedicated clusters.
+You can find it in the provisioning email you received from OPENTLC. Expect it to be similar to this:
+
+[source,sh]
+----
+https://multicloud-console.apps.cluster-$GUID.elt.opentlc.com
+----
+====
+
+. Log in to the RHACM console using the *admin* credentials provided in the email.
++
+[TIP]
+RHACM uses integrated authentication with the OpenShift cluster it is running on, so you use the same account you use to log in to OpenShift.
+
+* Expect to see general product information as well as direct links to the sections discussed earlier.
+
+. Because this lab is focused on Cluster Lifecycle, click *Go to Clusters* to see a page that displays the clusters RHACM is managing. Note that in this case, the page is currently empty.:
++
+image:acm_cluster_lifecycle_link.png[width=100%]
+
+. Select *Create a new cluster* from the *Add cluster* list:
++
+image:acm_cluster_lifecycle_create_2.png[width=100%]
++
+. Fill out the form with the information provided below:
+
+* *Cluster name*: `my-new-cluster`
+* *Distribution*: `Red Hat OpenShift`
+* *Infrastructure*: `Amazon Web Services`
+* *Release Image*: `Select the latest openshift image from quay.io`
+
+. Click on the Add connection to enter the following information:
++
+image:acm_cluster_lifecycle_create_3.png[width=100%]
++
+* *Provider*: `Amazon Web Services`
+* *Connection Name*: `aws`
+* *Namespace*: `default`
+* *Base DNS Domain*: `enter info`
+
+. Using the credentials provided earlier, fill out the AWS Access Key and Secrets. Click **Create**.
+. Select the newly created **Provider Connection**.
+. The rest of the information will auto fill, verify that it does. Click **Create**.
+. Take a moment to understand what you are setting up here:
+
+* The cluster name is just a way to identify this cluster in RHACM.
+It has no relation to any name or ID that might be associated with the actual cluster.
+Ideally, the cluster name should be used as a descriptive marker familiar within your organization.
+
+[NOTE]
+====
+The creation of a cluster usually takes **10-15 minutes**, you can skip the next step if the cluster is not done by the time you are done reading the instructions
+====
+
+=== Explore The Newly Created Cluster
+
+. Now that your cluster is created, switch back to the RHACM console and click *View cluster* at the top of the screen to be taken to an overview of your newly created cluster.
+
+* This is the starting point to interact more closely with your Kubernetes cluster.
+
+* Expect your screen to look similar to this, with obvious differences being the value for *Console URL*:
+// * Expect your screen to look similar to this, with obvious differences being the values for *Cluster API address* and *Console URL*:
++
+image:acm_cluster_lifecycle_create_4.png[width=100%]
+
+. Take a moment to explore some of the options available on this page:
+
+* You can both view and edit the *Labels*.
+* You can find the connection information for the OpenShift web console.
+// * You can find the connection information for both the OpenShift API and OpenShift web console.
+* You can see information about applications and policies applied to this cluster.
+While this is currently empty, you revisit it later and see the difference.
+
+. Click the *Nodes* tab to see a list of nodes that comprise your _managed_ cluster:
++
+image:acm_cluster_lifecycle_create_5.png[width=100%]
+
+* Note that this view shows more information about the underlying VM types.
+
+
+== Import Cluster to RHACM Console
+
+The labs in this course require you to perform several tasks through the RHACM console.
+Because RHACM has been provisioned for you, follow the steps below to retrieve the information you need to perform the tasks.
+
+. Use the URL from your provisioning email to navigate to the RHACM console in a web browser.
++
+[NOTE]
+====
+The URL is specific to your environment because you are using dedicated clusters.
+You can find it in the provisioning email you received from OPENTLC. Expect it to be similar to this:
+
+[source,sh]
+----
+https://multicloud-console.apps.cluster-$GUID.elt.opentlc.com
+----
+====
+
+. Log in to the RHACM console using the *admin* credentials provided in the email.
++
+[TIP]
+RHACM uses integrated authentication with the OpenShift cluster it is running on, so you use the same account you use to log in to OpenShift.
+
+* Expect to see general product information as well as direct links to the sections discussed earlier.
+
+. Because this lab is focused on Cluster Lifecycle, click *Go to Clusters* to see a page that displays the clusters RHACM is managing. Note that in this case, the page is currently empty.:
++
+image:acm_cluster_lifecycle_link.png[width=100%]
+
+. Select *Import an existing cluster* from the *Add cluster* list:
++
+image:acm_cluster_lifecycle_create_1.png[width=100%]
++
+[NOTE]
+Remember that you can import any Kubernetes cluster. You are not limited to OpenShift, although that is what you manage and use in this lab.
+
+. Fill out the form with the information provided below:
+
+* *Cluster name*: `my-openshift-cluster`
+* *Cloud*: `auto-detect`
+* *Environment*: `dev`
+* *Additional labels*: `guid=<your _managed_ cluster's GUID>`
+
+. Take a moment to understand what you are setting up here:
+
+* The cluster name is just a way to identify this cluster in RHACM.
+It has no relation to any name or ID that might be associated with the actual cluster.
+Ideally, the cluster name should be used as a descriptive marker familiar within your organization.
+* The environment and additional labels are arbitrary _key:value_ pairs that are associated with this cluster in RHACM.
+In this case, you are identifying the cluster you are importing by its GUID and an environment label.
+That is, the GUID of the _managed_ cluster, not the GUID of the _hub_ cluster.
+Labels are extremely important and are used heavily when you work with Application Lifecycle and GRC, which are covered in later labs.
+
+** It is best to plan out and design your labeling taxonomy in advance to consider usage for targeting workloads and policies.
+You can add labels after a cluster is deployed or imported (and you probably will), but try to limit this to new requirements that arise.
+
+. Next you instruct RHACM to generate a command that you can run to import the cluster. Confirm that your form looks like this, then click Generate command at the top of the page::
++
+image:acm_cluster_lifecycle_import_1.png[width=100%]
++
+[NOTE]
+====
+This generates a _very_ long command that is encoded in `base64`.
+You will use this in a subsequent step.
+====
+
+. Leave the new page open so you can come back in a few minutes to copy the command.
+
+. Open a terminal window and use SSH to access the `bastion` VM of your _managed_ OpenShift cluster.
+* The connection information and credentials are in the provisioning email you received for your _managed_ cluster.
++
+[WARNING]
+====
+Pay very close attention to which cluster you connect to.
+Remember that you _cannot_ import the _hub_ cluster as a _managed_ cluster.
+====
+. Verify that you are an OpenShift `cluster-admin` for your _managed_ cluster:
++
+[source,sh]
+----
+$ oc whoami
+----
++
+.Sample Output
+[source,sh]
+----
+system:admin
+----
+* You must have a high level of permissions in order to deploy the endpoint components into the _managed_ cluster.
+In this case, you use certificate-based authentication with the `system:admin` user, but any user that has been configured with proper access would work.
+
+. Take a moment to make sure that you can interact with your OpenShift cluster:
++
+[source,sh]
+----
+$ oc get nodes
+----
++
+.Sample Output
+[source,sh]
+----
+NAME                               STATUS   ROLES    AGE     VERSION
+cluster-acmm1-kqpc9-master-0       Ready    master   2d17h   v1.17.1+3f6f40d
+cluster-acmm1-kqpc9-master-1       Ready    master   2d17h   v1.17.1+3f6f40d
+cluster-acmm1-kqpc9-master-2       Ready    master   2d17h   v1.17.1+3f6f40d
+cluster-acmm1-kqpc9-worker-kccd6   Ready    worker   2d17h   v1.17.1+3f6f40d
+cluster-acmm1-kqpc9-worker-x478m   Ready    worker   2d17h   v1.17.1+3f6f40d
+----
+* Expect your output to look different, depending on where your OpenShift cluster is deployed.
+Simply make sure the command completes successfully and that you see three `master` nodes and two `worker` nodes.
+
+. In the RHACM console, click the *Copy* icon to copy the command you generated previously into your clipboard:
++
+image:acm_cluster_lifecycle_import_2.png[width=100%]
+
+. Switch back to the SSH session you opened to the `bastion` VM of your _managed_ cluster, paste the command you just copied, and press *Enter*.
+
+* Expect the result of running that command to match the following:
++
+.Sample Output
+[source,sh]
+----
+customresourcedefinition.apiextensions.k8s.io/klusterlets.operator.open-cluster-management.io created
+clusterrole.rbac.authorization.k8s.io/klusterlet created
+clusterrole.rbac.authorization.k8s.io/open-cluster-management:klusterlet-admin-aggregate-clusterrole created
+clusterrolebinding.rbac.authorization.k8s.io/klusterlet created
+namespace/open-cluster-management-agent created
+secret/bootstrap-hub-kubeconfig created
+secret/open-cluster-management-image-pull-credentials created
+serviceaccount/klusterlet created
+deployment.apps/klusterlet created
+klusterlet.operator.open-cluster-management.io/klusterlet created
+----
+* Based on the objects created here, you can see why you need cluster-level permissions.
+Some of the resource kinds, such as the `CustomResourceDefinition`, can only be created by cluster administrators.
+
+. Still on your `bastion` VM, run the following command to ensure that all of the RHACM endpoint management Pods have deployed.
+These are the core agent Pods for RHACM managed clusters:
++
+[source,sh]
+----
+$ oc get pod -n open-cluster-management-agent
+----
++
+.Sample Output
+[source,sh]
+----
+NAME                                             READY   STATUS    RESTARTS   AGE
+klusterlet-6cb4fc87d7-dkfgv                      1/1     Running   0          4m38s
+klusterlet-registration-agent-597bd56b84-2zlnr   1/1     Running   0          4m8s
+klusterlet-registration-agent-597bd56b84-cpd7v   1/1     Running   0          4m8s
+klusterlet-registration-agent-597bd56b84-xm898   1/1     Running   0          4m8s
+klusterlet-work-agent-9f4f46b6d-9jr74            1/1     Running   0          4m8s
+klusterlet-work-agent-9f4f46b6d-cz2sg            1/1     Running   1          4m8s
+klusterlet-work-agent-9f4f46b6d-hhm8s            1/1     Running   1          4m8s
+----
+* If you see any Pods that are not `1/1` in the READY column and `Running` in the STATUS column, wait a minute and check again.
+
+. Run the following command to ensure that all of the RHACM add-on Pods have deployed:
++
+[source,sh]
+----
+$ oc get pod -n open-cluster-management-agent-addon
+----
++
+.Sample Output
+[source,sh]
+----
+NAME                                                         READY   STATUS    RESTARTS   AGE
+klusterlet-addon-appmgr-5fc8bbc59c-4zjcb                     1/1     Running   0          3m14s
+klusterlet-addon-certpolicyctrl-67b4b6f968-qrjdh             1/1     Running   0          3m15s
+klusterlet-addon-iampolicyctrl-746f595946-5l6mh              1/1     Running   0          3m15s
+klusterlet-addon-operator-854d8df5ff-kzrkw                   1/1     Running   0          4m4s
+klusterlet-addon-policyctrl-config-policy-64fcff7487-7jm5d   1/1     Running   0          3m15s
+klusterlet-addon-policyctrl-framework-57f8f59fcd-7qfcf       3/3     Running   0          3m13s
+klusterlet-addon-search-84c97f47b5-5d7t8                     1/1     Running   0          3m15s
+klusterlet-addon-workmgr-9d9ff6c4-qrvn5                      1/1     Running   0          3m15s
+----
+
+=== Explore Imported Cluster
+
+. Now that your endpoint components are running, switch back to the RHACM console and click *View cluster* at the top of the screen to be taken to an overview of your newly imported cluster.
+
+* This is the starting point to interact more closely with your Kubernetes cluster.
+
+* Expect your screen to look similar to this, with obvious differences being the value for *Console URL*:
+// * Expect your screen to look similar to this, with obvious differences being the values for *Cluster API address* and *Console URL*:
++
+image:acm_cluster_lifecycle_import_3.png[width=100%]
+
+. Take a moment to explore some of the options available on this page:
+
+* You can both view and edit the *Labels*.
+* You can find the connection information for the OpenShift web console.
+// * You can find the connection information for both the OpenShift API and OpenShift web console.
+* You can see information about applications and policies applied to this cluster.
+While this is currently empty, you revisit it later and see the difference.
+
+. Click the *Nodes* tab to see a list of nodes that comprise your _managed_ cluster:
++
+image:acm_cluster_lifecycle_import_4_aws.png[width=100%]
+
+* Note that this view shows more information about the underlying VM types.
+
+== Upgrade _Managed_ Cluster (Optional)
+
+The Cluster Lifecycle feature in RHACM includes the ability to manage upgrades of your OpenShift clusters.
+Imagine a situation where you have a dozen or a hundred clusters deployed globally and you need to manage an upgrade cycle.
+Rather than log in to every cluster one by one, you can use RHACM to initiate the upgrades for you.
+
+This part of the lab is optional and takes some time to complete.
+Skipping this exercise does not affect the functionality of the remaining labs.
+
+. Using the menu at the top left of your RHACM screen, navigate back to *Automate infrastructure -> Clusters*.
+* This is the same location where you started, except now your newly imported cluster is present and available to be _managed_.
+
+. Click the *Upgrade available* link, select the latest version available, and then click *Upgrade*.
++
+image:acm_cluster_lifecycle_upgrade_1_aws.png[width=100%]
+
+* The available versions are provided by the OpenShift cluster, so any selection is valid.
+. In your SSH session to the `bastion` VM of your _managed_ cluster, confirm that the upgrade has started:
++
+[source,sh]
+----
+$ oc get clusterversion
+----
++
+.Sample Output
+[source,sh]
+----
+NAME      VERSION   AVAILABLE   PROGRESSING   SINCE   STATUS
+version   4.4.8     True        True          73s     Working towards 4.4.14: 14% complete
+----
++
+NOTE: Your versions may be different than the sample output, depending on versions available at the time you complete this lab.
+
+. In the RHACM console, confirm that the status of your cluster is now `Upgrading`.
+* Depending on which versions you are upgrading from and to, this can take up to 30 minutes or more.
+* When the upgrade completes, expect your cluster to show a status of `Ready` and a new distribution version:
++
+image:acm_cluster_lifecycle_upgrade_2_aws.png[width=100%]
++
+[NOTE]
+Keep in mind with activities such as upgrading, RHACM is simply passing the command to the OpenShift cluster for you.
+The entire upgrade process is managed by the Operators running in the cluster and RHACM is only reporting on the status.
+
+== Summary
+You have now completed the overview of the Cluster Lifecycle feature in RHACM.
+
+You successfully created and imported an OpenShift cluster to be managed by RHACM from this point on.
+You use these clusters as a target for application deployments and security policies in subsequent labs.
+Later, in the _Visibility_ lab, you explore the usage of this newly _created and managed_ clusters.

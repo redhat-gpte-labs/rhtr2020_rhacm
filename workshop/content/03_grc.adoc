@@ -1,0 +1,500 @@
+:guid: %guid%
+:user: %user%
+:markup-in-source: verbatim,attributes,quotes
+
+== GRC Lab
+
+In this lab, you explore the Governance, Risk, and Compliance (GRC) capabilities of Red Hat^(R)^ Advanced Cluster Management for Kubernetes (RHACM).
+
+.Goals
+* Understand GRC in RHACM
+* Create a configuration policy
+* Create a certificate policy
+
+.Prerequisites
+* Completion of the _Cluster Lifecycle Lab_
+* Completion of the _Application Lifecycle Lab_
+
+== Introduction
+At this point, you have completed the overview labs for Cluster Lifecycle and Application Lifecycle capabilities in RHACM.
+In the _Cluster Lifecycle Lab_, you learned how RHACM can help manage the life cycles of your Kubernetes clusters, including both deploying new clusters and importing existing clusters.
+In that lab, you configured your RHACM instance to manage an OpenShift^(R)^ cluster.
+
+In the _Application Lifecycle Lab_, you continued exploring RHACM functionality and learned how to deploy and configure an application.
+You used the cluster that you added in the first module as the target for deploying an application.
+
+Now that you have a cluster and a deployed application, you need to make sure that they do not drift from their original configurations.
+This kind of drift is a serious problem, because it can happen from benign and benevolent fixes and changes, as well as malicious activities that you might not notice but can cause significant problems.
+The solution that RHACM provides for this is the Governance, Risk, and Compliance, or GRC, functionality.
+
+=== Review GRC Functionality
+
+To begin, it is important to define exactly what GRC is.
+In RHACM, you build policies that are applied to _managed_ clusters.
+These policies can do different things, which are described below, but they ultimately serve to govern the configurations of your clusters.
+This governance over your cluster configurations reduces risk and ensures compliance with standards defined by stakeholders, which can include security teams and operations teams.
+
+This table describes the three types of policy controllers available in RHACM along with the remediation mode they support:
+
+[options=header,cols="1,3,1"]
+|====
+|Policy Controller
+|Purpose
+|Enforce or Inform
+|Configuration
+|Used to configure any Kubernetes resource across your clusters.
+Where these resources are created or configured is determined by the namespaces you include (or exclude) in the policy.
+|Both
+|Certificate
+|Used to detect certificates that are close to expiring.
+You can configure the certificate policy controller by updating the minimum duration parameter in your controller policy.
+When a certificate expires in less than the minimum duration, the policy becomes noncompliant.
+Certificates are identified from secrets in the included namespaces.
+|Inform
+|Identity and Access Management (IAM)
+|Used to receive notifications about IAM policies that are noncompliant.
+In the 1.0 version of RHACM, this checks for compliance with the number of cluster administrators  you allow in your cluster.
+|Inform
+// |CIS
+// |Monitors the nodes in a cluster for compliance against CIS Kubernetes benchmark checks.
+// This uses the Aqua security kube-bench tool to check the master and worker nodes in the _managed_ cluster for compliance.
+// It is supported only on OpenShift 3.11 clusters in this release.
+// |Inform
+|====
+
+You need to create three different resources in order to implement the policy controllers:
+
+[options=header,cols="1,3"]
+|====
+a|Resource
+a|Function
+|`Policy`
+|Defines what you actually want to check and possibly configure (with enforce).
+Policies include a `policy-template` which defines a list of `objectDefinitions`.
+The policy also determines the namespaces it is applied to, as well as the remediation actions it takes.
+|`PlacementRule`
+|Identifies a list of _managed_ clusters that are targeted when using this PlacementRule.
+|`PlacementBinding`
+|Connects the policy to the PlacementRule.
+|====
+
+You can see most of these components running in the _hub_ cluster in the diagram below.
+RHACM uses all of these to determine which _managed_ clusters and namespaces the policies are applied to.
+
+image:grc_arch.png[]
+
+Fortunately, the RHACM console provides an easy way to start creating basic policies, as shown below.
+In this example, you can see that when you change values for elements in the RHACM console, the YAML content is updated.
+
+image:grc_create_policy.gif[]
+
+This is a complex topic, and this course is only providing an overview.
+Please consult the link:https://access.redhat.com/documentation/en-us/red_hat_advanced_cluster_management_for_kubernetes/2.0/html-single/security/index#governance-and-risk[GRC product documentation^] for more details on any of these policy controllers.
+
+In this lab, you create a configuration and certificate policy.
+This gives you a feel for how GRC works in RHACM and how you can adapt these policies to other scenarios.
+
+=== Consider Personas
+
+When you think about GRC, think about these personas and their needs:
+
+[options=header,cols="1,3"]
+|====
+|Persona
+|Need
+|Security Operations
+a|* How do I ensure all my clusters are compliant with standard and custom policies?
+* How do I set consistent security policies across diverse environments and ensure enforcement?
+* How am I alerted about any configuration drift and how do I remediate it?
+|IT Operations
+a|* How do I ensure 99.9% uptime?
+* How do I drive more innovation at scale?
+|====
+
+== Create Configuration Policy
+
+As described above, a configuration policy can be used to configure any Kubernetes resource and apply security policies across your clusters.
+Take, for example, a large and heavily used cluster that has users constantly provisioning and deprovisioning workloads and projects.
+You might want to make sure every project has a `LimitRange` object configured.
+This ensures that users cannot deploy Pods that are too big or too small and sets defaults for the requests and limits if they are not defined in the workload's Pod specification.
+Having defaults is a very good idea if you are using quotas.
+If you have a `Quota` object configured and a Pod has no requests or limits configured, the scheduler rejects it.
+This is a common use case for a configuration policy controller, and something you ought to consider deploying in every cluster.
+
+[TIP]
+====
+Make sure you have the Git repository cloned from the previous lab. 
+You use those resources throughout this lab as well.
+====
+
+. On the `bastion` VM of your _hub_ cluster, start by creating a namespace to hold all of your policy resources:
++
+[source,sh]
+----
+$ oc create -f $HOME/rhacm-labs/resources/policies/namespace.yaml
+----
++
+.Sample Output
+[source,sh]
+----
+namespace/rhacm-policies created
+----
+
+. Next, create a `PlacementRule` resource:
++
+[NOTE]
+====
+You should be familiar with this resource from the previous module--it is the same resource that helps RHACM determine which cluster to apply policies to.
+You use this `PlacementRule` resource for multiple policies in this lab, but this is a very simple scenario.
+For larger multi-cluster environments, you are likely to have multiple `PlacementRule` resources.
+====
++
+[source,sh]
+----
+$ oc create -f $HOME/rhacm-labs/resources/policies/config_placement_rule.yaml
+----
++
+.Sample Output
+[source,sh]
+----
+placementrule.apps.open-cluster-management.io/dev-clusters created
+----
+
+. Look at the resource you just created to familiarize yourself with it again:
++
+[source,sh]
+----
+$ oc get placementrule dev-clusters -n rhacm-policies -o yaml
+----
++
+.Sample Output
+[source,yaml]
+----
+apiVersion: apps.open-cluster-management.io/v1
+kind: PlacementRule
+metadata:
+  annotations:
+    open-cluster-management.io/user-group: c3lzdGVtOm1hc3RlcnMsc3lzdGVtOmF1dGhlbnRpY2F0ZWQ=
+    open-cluster-management.io/user-identity: c3lzdGVtOmFkbWlu
+  name: dev-clusters
+  namespace: rhacm-policies
+spec:
+  clusterConditions:
+  - status: "True"
+    type: ManagedClusterConditionAvailable
+  clusterSelector:
+    matchExpressions:
+    - key: environment
+      operator: In
+      values:
+      - dev
+status:
+  decisions:
+  - clusterName: my-openshift-cluster
+    clusterNamespace: my-openshift-cluster
+----
+
+* The resource targets clusters labeled `environment: dev`, which includes the cluster you added in the first lab.
+RHACM used this information to determine that any policies using this `PlacementRule` resource are to be deployed to `my-openshift-cluster`.
+
+. Now it is time to create the first `Policy` resource: A configuration policy controller that ensures that a `LimitRange` object exists for all appropriate projects in a cluster:
++
+[NOTE]
+====
+You can do this in the UI or using the CLI.
+The UI method is covered later in the lab.
+====
+.. Start by looking at the object you need to create:
++
+[source,sh]
+----
+$ cat $HOME/rhacm-labs/resources/policies/config_limitrange.yaml
+----
++
+.Sample Output
+[source,yaml]
+----
+apiVersion: policy.open-cluster-management.io/v1
+kind: Policy <1>
+metadata:
+  name: policy-limitmemory
+  namespace: rhacm-policies
+spec:
+  remediationAction: enforce <2>
+  disabled: false
+  policy-templates:
+    - objectDefinition:
+        apiVersion: policy.open-cluster-management.io/v1
+        kind: ConfigurationPolicy
+        metadata:
+          name: policy-limitrange
+        spec:
+          severity: medium
+          namespaceSelector:
+            exclude: <3>
+            - kube-*
+            - openshift-*
+            - openshift
+            - open-cluster*
+            - default
+            - multicluster-endpoint
+            include:
+            - '*'
+          object-templates: <4>
+            - complianceType: musthave
+              objectDefinition: <5>
+                apiVersion: v1
+                kind: LimitRange
+                metadata:
+                  name: default-limit-range
+                spec:
+                  limits:
+                  - type: Container
+                    default:
+                      cpu: 500m
+                      memory: 512Mi
+                    defaultRequest:
+                      cpu: 50m
+                      memory: 256Mi
+                    max:
+                      cpu: 2
+                      memory: 4Gi
+                  - type: Pod
+                    max:
+                      cpu: 4
+                      memory: 8Gi
+----
++
+<1> You can now create a `Policy` resource because a CRD was added to this cluster that extends the Kubernetes API to define what a `Policy` resource is.
+<2> This is the action to be taken.
+The choices are `inform` or `enforce`, but `enforce` only works if supported.
+<3> You do not want this `Policy` resource to apply to these projects by default.
+Again, this can be overridden if you have something specific that needs to be applied.
+<4> A list of Kubernetes objects that are created.
+<5> The object definition of what you want created.
+In this example, you are creating the `LimitRange` object.
+
+.. Create the policy:
++
+[source,sh]
+----
+$ oc create -f $HOME/rhacm-labs/resources/policies/config_limitrange.yaml
+----
++
+.Sample Output
+[source,sh]
+----
+policy.policy.open-cluster-management.io/policy-limitmemory created
+----
+
+. Now you need a `PlacementBinding` resource to connect the `PlacementRule` resource and the `Policy` resource.
+Fortunately, you have one available. 
+Open the `PlacementBinding` resource to see what it does:
++
+[source,sh]
+----
+$ cat $HOME/rhacm-labs/resources/policies/config_placement_binding.yaml
+----
++
+.Sample Output
+[source,yaml]
+----
+apiVersion: policy.open-cluster-management.io/v1
+kind: PlacementBinding
+metadata:
+  name: binding-policy-limitmemory
+  namespace: rhacm-policies
+placementRef:
+  name: dev-clusters <1>
+  kind: PlacementRule
+  apiGroup: apps.open-cluster-management.io
+subjects:
+- name: policy-configuration <2>
+  kind: Policy
+  apiGroup: policy.open-cluster-management.io
+----
++
+<1> This is the `PlacementRule` resource that you defined earlier which allows any `Policy` resource in this `PlacementBinding` resource to target your _managed_ cluster.
+<2> This is the `Policy` resource that you created in the previous step.
+This is a list, so you can add multiple `Policy` objects here to apply them all to the same target.
+
+. Create the `PlacementBinding` resource:
++
+[source,sh]
+----
+$ oc create -f $HOME/rhacm-labs/resources/policies/config_placement_binding.yaml
+----
++
+.Sample Output
+[source,sh]
+----
+placementbinding.policy.open-cluster-management.io/binding-policy-limitmemory created
+----
+
+. Move to the RHACM console and use the menu at the top left to navigate to *Govern risk*.
+* Expect to see the `Policy` resource you just created.
+. Click the `Policy` resource.
+* Expect it to include all of the details that you defined in the previous three manifests:
++
+image:grc_policy_created.png[]
+
+. Switch to the `bastion` VM on your _managed_ cluster and run the following command to confirm that the `LimitRange` objects were created on the appropriate projects:
++
+[source,sh]
+----
+$ oc get limitrange -A
+----
++
+.Sample Output
+[source,sh]
+----
+NAMESPACE              NAME                  CREATED AT
+etherpad               default-limit-range   2020-08-04T21:48:32Z
+my-openshift-cluster   default-limit-range   2020-08-04T21:48:32Z
+----
++
+****
+*Question*:
+Can you figure out why this was created in only two projects when you have many more?
+****
+
+. Test that this works dynamically by creating a new project and then retrieving the list of `LimitRange` objects again:
++
+[source,sh]
+----
+$ oc new-project my-test
+$ oc get limitrange -A
+----
++
+.Sample Output
+[source,sh]
+----
+NAMESPACE              NAME                  CREATED AT
+etherpad               default-limit-range   2020-07-01T02:40:18Z
+my-openshift-cluster   default-limit-range   2020-07-01T02:40:18Z
+my-test                default-limit-range   2020-07-01T02:50:11Z
+----
+
+== Create Certificate Policy
+
+Expiring certificates are always a problem.
+Have you ever tried to use an application or website that worked yesterday, but today it has a warning that the TLS certificate is expired?
+Certificates always expire, and even with the best intentions people forget to renew them ahead of time.
+
+GRC includes a _certificate policy controller_ that can make monitoring this quite easy, as you learned earlier in this lab.
+In this section, you create a `Policy` resource that watches for expiring certificates in the `openshift-ingress` namespace.
+This namespace holds the TLS certificate used by the _ingress controller_ to terminate TLS sessions at the router.
+It expires after 90 days from issuance.
+
+. On the `bastion` VM of your _managed_ cluster, run the following command to retrieve the TLS certificate in use and display the validity dates:
++
+[source,sh]
+----
+$ oc get secret -n openshift-ingress router-certs -o "jsonpath={.data['tls\.crt']}" | base64 -d - | openssl x509 -noout -text -in - | grep Validity -A2
+----
++
+.Sample Output
+[source,sh]
+----
+Validity
+    Not Before: Jun 25 06:27:35 2020 GMT
+    Not After : Sep 23 06:27:35 2020 GMT
+----
+* Specifically note the `Not After` date.
+It is the date your certificate expires.
+
+. On the `bastion` VM of your _hub_ cluster, look at the manifest you use to create this `Policy` resource:
++
+[NOTE]
+====
+You need to be informed when a certificate is about to expire.
+Normally, this would be a more reasonable amount of time to give you a chance to renew before expiration, but this lab uses a much longer duration so that you can see a cluster violation occur.
+Because the certificate stored in `router-certs` expires after about 90 days, you can set `minimumDuration` to 2200h.
+====
++
+[source,sh]
+----
+$ cat $HOME/rhacm-labs/resources/policies/cert_expiration.yaml
+----
++
+.Sample Output
+[source,yaml]
+----
+---
+apiVersion: policy.open-cluster-management.io/v1
+kind: Policy
+metadata:
+  name: policy-certificate
+  namespace: rhacm-policies
+spec:
+  remediationAction: inform
+  disabled: false
+  policy-templates:
+    - objectDefinition: <1>
+        apiVersion: policy.open-cluster-management.io/v1
+        kind: CertificatePolicy
+        metadata:
+          name: policy-certificate-example
+        spec:
+          minimumDuration: 2200h <2>
+          namespaceSelector:
+            include:
+            - openshift-ingress <3>
+            exclude: []
+          remediationAction: inform
+          severity: low
+---
+apiVersion: policy.open-cluster-management.io/v1
+kind: PlacementBinding <4>
+metadata:
+  name: certificate-placement-binding
+  namespace: rhacm-policies
+placementRef:
+  name: dev-clusters
+  kind: PlacementRule
+  apiGroup: apps.open-cluster-management.io
+subjects:
+- name: policy-certificate
+  kind: Policy
+  apiGroup: policy.open-cluster-management.io
+
+----
++
+<1> Like the previous example, you are providing a definition of the object you want to create.
+In this case, you are creating a `CertificatePolicy` that watches for certificates in the identified namespaces.
+<2> Any certificate that expires within this duration is flagged as a violation of this policy.
+<3> The policy only watches the `openshift-ingress` namespace in the cluster.
+<4> You must create a `PlacementBinding` resource.
+In this example, you are reusing the `PlacementRule` resource from the previous example in order to target the same cluster.
+
+. Create the `Policy` and observe that both the `Policy` and `PlacementBinding` resources created:
++
+[source,sh]
+----
+$ oc create -f $HOME/rhacm-labs/resources/policies/cert_expiration.yaml
+----
++
+.Sample Output
+[source,sh]
+----
+policy.policy.open-cluster-management.io/policy-certificate created
+placementbinding.policy.open-cluster-management.io/certificate-placement-binding created
+----
+. In the RHACM console, navigate to the *Violations* tab of the newly created policy, and observe that there is a single violation for one certificate in the `openshift-ingress` namespace that expires within 2200 hours:
++
+image:grc_cert_violation.png[]
+
+
+== Summary
+
+You have now completed the overview of Governance, Risk, and Compliance functionality in RHACM.
+
+In this lab, you successfully deployed two separate types of policy controllers.
+The _configuration policy controller_ was used to ensure that a certain configuration was in place--in this case, to ensure that all projects had a `LimitRange` object associated with them.
+You were able to accomplish this by creating a `Policy` resource with this object definition and set it to `enforce` mode.
+
+You also created a _certificate policy controller_ that watches for TLS certificates that are approaching their expiration.
+This is an essential task that is often overlooked and can result in outages when a certificate is not renewed before it expires.
+While RHACM cannot replace the certificate for you, being notified is the first step in building a process to prevent expiration from happening.
+
+Finally, note that almost everything you did in this lab can be done in the RHACM console.

@@ -1,0 +1,551 @@
+:guid: %guid%
+:user: %user%
+:markup-in-source: verbatim,attributes,quotes
+
+== Application Lifecycle Lab
+
+In this lab, you explore the Application Lifecycle capabilities of Red Hat^(R)^ Advanced Cluster Management for Kubernetes (RHACM).
+
+.Goals
+* Understand Application Lifecycle capabilities in RHACM
+* Deploy an application to a _managed_ cluster
+* Remove a deployed application from a _managed_ cluster
+* Change a deployed application (optional)
+
+.Prerequisite
+* Completion of the _Cluster Lifecycle Lab_
+
+== Introduction
+In the previous lab, you explored the Cluster Lifecycle functionality in RHACM.
+This allowed you to add an OpenShift^(R)^ cluster to RHACM, which you can now use to deploy applications.
+
+=== Review Application Lifecycle Functionality
+Application Lifecycle functionality in RHACM provides the processes that are used to manage application resources on your _managed_ clusters.
+This allows you to define a single- or multi-cluster application using Kubernetes specifications, but with additional automation of the deployment and lifecycle management of resources to individual clusters.
+An application designed to run on a single cluster is straightforward and something you ought to be familiar with from working with OpenShift fundamentals.
+A multi-cluster application allows you to orchestrate the deployment of these same resources to multiple clusters, based on a set of rules you define for which clusters run the application components.
+
+This table describes the different components that the Application Lifecycle model in RHACM is composed of:
+
+[options=header,cols="1,3"]
+|====
+|Resource
+|Purpose
+|`Channel`
+|Defines a place where deployable resources are stored, such as an object store, Kubernetes namespace, Helm repository, or GitHub repository.
+|`Subscription`
+|Definitions that identify deployable resources available in a `Channel` resource that are to be deployed to a target cluster.
+|`PlacementRule`
+|Defines the target clusters where subscriptions deploy and maintain the application. 
+It is composed of Kubernetes resources identified by the `Subscription` resource and pulled from the location defined in the `Channel` resource.
+|`Application`
+|A way to group the components here into a more easily viewable single resource. 
+An `Application` resource typically references a `Subscription` resource.
+|====
+
+These are all Kubernetes custom resources, defined by a Custom Resource Definition (CRD), that are created for you when RHACM is installed.
+By creating these as Kubernetes native objects, you can interact with them the same way you would with a Pod.
+For instance, running `oc get application` retrieves a list of deployed RHACM applications just as `oc get pods` retrieves a list of deployed Pods.
+
+This may seem like a lot of extra resources to manage in addition to the deployables that actually make up your application.
+However, they make it possible to automate the composition, placement, and overall control of your applications when you are deploying to many clusters.
+With a single cluster, it is easy to log in and run `oc create -f...`.
+If you need to do that on a dozen clusters, you want to make sure you do not make a mistake or miss a cluster, and you need a way to schedule and orchestrate updates to your applications.
+Leveraging the Application Lifecycle functionality in RHACM allows you to easily manage multi-cluster applications.
+
+=== Consider Personas
+
+When you think about Application Lifecycle features, think about these personas and their needs:
+
+[options=header,cols="1,3"]
+|====
+|Persona
+|Need and RHACM Solution
+|IT Operations
+a|* I want new clusters to be deployed with a set of known configurations and required applications.
+* With the assignment of a label at cluster deploy time, the necessary configurations and applications are automatically deployed and running without any additional manual effort.
+|DevOps/SRE
+a|* I want to quickly investigate application relationships with real-time status, so that I can see where problems are.
+* With the *Application Topology* view, you can visually inspect application status labels and Pod logs to understand if a part of the application is running or not, without having to connect to a cluster and gather any information.
+|====
+
+== Create Application in RHACM
+Now that you have an idea of what the Application Lifecycle capabilities are in RHACM, it is time to deploy a simple application to your _managed_ cluster.
+You deploy to only a single target cluster in this lab, but you can adapt what you learn to environments with a larger number of clusters.
+
+The application you deploy in this lab is called *Etherpad*. 
+It is a simple application with front-end and back-end components.
+
+To make this lab easier to follow, some creation steps are done via the CLI on the `bastion` VM of your _hub_ cluster.
+
+. If you are not still logged in from the previous lab, log in to your RHACM console with the credentials provided in the provisioning email.
+Refer to the previous lab if you need more details on how to do this.
+
+. Using the menu at the top left, navigate to *Manage applications*.
+* Similar to when you started the _Cluster Lifecycle Lab_, expect not to find any defined applications.
+
+. Open a terminal and use SSH to access the `bastion` VM of your _hub_ OpenShift cluster.
+* The connection information and credentials are in the provisioning email you received for the _hub_ cluster.
+. Once you are connected, verify that you can interact with your _hub_ OpenShift cluster with this command:
++
+[source,sh]
+----
+$ oc get projects
+----
++
+.Sample Output
+[source,sh]
+----
+NAME                                               DISPLAY NAME   STATUS
+default                                                           Active
+hive                                                              Active
+kube-node-lease                                                   Active
+kube-public                                                       Active
+kube-system                                                       Active
+my-openshift-cluster                                              Active
+open-cluster-management                                           Active
+open-cluster-management-hub                                       Active
+openshift                                                         Active
+...
+----
++
+[IMPORTANT]
+If you do not see the projects named `hive`, `my-openshift-cluster`, and `open-cluster-management`, you are probably logged in to the wrong OpenShift cluster or you did not complete the previous lab.
+Stop here and figure out what you did wrong.
+
+. All of the resources you need to complete this lab are in a GitHub repository, but you will need a fork of this repository in order to make changes.
+Create a fork of link:https://github.com/redhat-gpte-devopsautomation/rhacm-labs.git[^].
++
+[NOTE]
+====
+Visit the link:https://docs.github.com/en/github/getting-started-with-github/fork-a-repo#fork-an-example-repository[GitHub documentation^] for tips on how to fork a repository.
+====
+
+. Set your GitHub ID as an environment variable.
+This will make subsequent commands a little easier:
++
+[source,sh]
+----
+$ export GITHUB_ID=<your-github-id>
+----
+
+. Clone the repository on the `bastion` of your _hub_ cluster to make it available locally:
++
+[source,sh]
+----
+$ cd $HOME
+$ git clone https://github.com/${GITHUB_ID}/rhacm-labs.git
+----
++
+[NOTE]
+====
+You can also create everything in the subsequent steps by referencing the files directly from the Git repository, but cloning them makes them available to analyze and modify locally.
+====
+
+. The first thing you need is a namespace to hold all of the resources you plan to create that ultimately define your application.
+Create a new namespace called `etherpad`:
++
+[source,sh]
+----
+$ oc create -f $HOME/rhacm-labs/apps/etherpad/namespace.yaml
+----
++
+.Sample Output
+[source,sh]
+----
+namespace/etherpad created
+----
+
+.  Update the manifest that describes some of the components of your `Application` to point to your forked GitHub repository:
++
+[source,sh]
+----
+$ sed -i "s/redhat-gpte-devopsautomation/${GITHUB_ID}/g" $HOME/rhacm-labs/apps/etherpad/application.yaml
+----
+
+. Look at the YAML definition that defines three of the resources required for your application to deploy: `Channel`, `Application`, and `Subscription`:
++
+[NOTE]
+====
+For convenience, the resources are displayed in a single file here, but they can be three separate manifests as well. 
+Also, you can create these resources one by one in any order you want.
+====
++
+[source,sh]
+----
+$ cat $HOME/rhacm-labs/apps/etherpad/application.yaml
+----
++
+.Sample Output
+[source,yaml]
+----
+---
+apiVersion: apps.open-cluster-management.io/v1
+kind: Channel
+metadata:
+  name: etherpad-app-latest
+  namespace: etherpad <1>
+spec:
+  type: GitHub
+  pathname: https://github.com/redhat-gpte-devopsautomation/rhacm-labs.git <2>
+---
+apiVersion: app.k8s.io/v1beta1
+kind: Application
+metadata:
+  name: etherpad-app
+  namespace: etherpad <1>
+spec:
+  componentKinds:
+  - group: apps.open-cluster-management.io
+    kind: Subscription
+  descriptor: {}
+  selector:
+    matchExpressions: <3>
+    - key: app
+      operator: In
+      values:
+      - etherpad-app
+---
+apiVersion: apps.open-cluster-management.io/v1
+kind: Subscription
+metadata:
+  name: etherpad-app
+  namespace: etherpad <1>
+  labels:
+    app: etherpad-app <4>
+  annotations:
+    apps.open-cluster-management.io/github-path: resources/etherpad <5>
+spec:
+  channel: etherpad/etherpad-app-latest <6>
+  placement:
+    placementRef:
+      kind: PlacementRule
+      name: dev-clusters <7>
+----
++
+Note all of the things happening in this file:
++
+<1> All of these resources are to be created in the `etherpad` namespace.
+<2> `Channel` points to a `GitHub` type and references this repository where the deployables for the application are stored.
+Ensure that this has been updated to match your forked GitHub repository.
+<3> `Application` is looking for a `Subscription` resource with a label that matches `app: etherpad-app`.
+<4> This `Subscription` resource has the `etherpad-app` label that the `Application` resource is looking for.
+<5> The `github-path` annotation is to be joined with the `pathname` specification defined in the `Channel` resource when using a type of `GitHub`.
+<6> This is the `Channel` resource that the `Subscription` resource uses to find the deployables on the target cluster.
+<7> The `Subscription` resource also references the `PlacementRule` resource, which is not yet defined.
+Without a `PlacementRule` resource, there would be no cluster to deploy this application to.
+
+. Create all three resources using the `bastion` VM in your _hub_ cluster:
++
+[source,sh]
+----
+$ oc create -f $HOME/rhacm-labs/apps/etherpad/application.yaml
+----
++
+.Sample Output
+[source,sh]
+----
+channel.apps.open-cluster-management.io/etherpad-app-latest created
+application.app.k8s.io/etherpad-app created
+subscription.apps.open-cluster-management.io/etherpad-app created
+----
+
+. In your RHACM console, look for the newly created `Application` resource.
++
+[NOTE]
+====
+It may take a few minutes for the RHACM console to update and show the application. 
+Refresh the page in your browser after a few minutes.
+====
+
+. Click the `etherpad-app` application to see an overview with a topology map, and note that at this point, it is mostly empty:
++
+image:acm_app_lifecycle_topology_initial.png[width=100%]
+
+. Click the *Resources* tab to see more information about the resources associated with your application.
+Note that you now have a `Subscription` resource and a `Channel` resource defined and that the `Subscription` resource is currently _Failed_.
++
+image:acm_app_lifecycle_resources_initial.png[width=100%]
+
+== Deploy Application
+
+Now that your application and all of its associated components are created, you are ready to deploy to a target cluster. 
+But you still need to instruct RHACM _where_ to deploy your application and, more specifically, your `Subscription` resource.
+The lack of this direction is why your `Subscription` resource is currently in a _Failed_ state.
+
+. In the RHACM console, click *Create placement rule* on the right side of the screen and paste the following YAML content into the editor, making sure to overwrite any defaults:
++
+[source,yaml]
+----
+apiVersion: apps.open-cluster-management.io/v1
+kind: PlacementRule
+metadata:
+  name: dev-clusters
+  namespace: etherpad
+spec:
+  clusterConditions:
+    - type: ManagedClusterConditionAvailable
+      status: "True"
+  clusterSelector:
+    matchLabels:
+      environment: dev
+----
++
+[WARNING]
+====
+The key:value pair in the `clusterSelector` section is case-sensitive.
+Make sure it matches how you labeled your cluster in the previous lab.
+====
++
+[NOTE]
+====
+Using the YAML editor in the RHACM console is an alternative way to create resources related to the application life cycle.
+It accomplishes the same result as executing the `oc create -f...` command, as you did in the previous section.
+====
+
+. Click the *Overview* tab of your `etherpad-app` application and observe the topology view being updated after the deployables start rolling out to your target cluster:
++
+image:acm_app_lifecycle_topology_updated.png[width=100%]
+
+. Verify that your application is deployed by checking the resources in your _managed_ cluster.
+Run the following command from the `bastion` VM:
++
+[source,sh]
+----
+$ oc get pods -n etherpad
+----
++
+.Sample Output
+[source,sh]
+----
+NAME                          READY   STATUS    RESTARTS   AGE
+etherpad-5ccc6bdc6d-xj2sg     1/1     Running   0          3m6s
+postgresql-7f499d7f94-wdlk9   1/1     Running   0          3m6s
+----
+
+. Find your application's `route`, then use it to access the application via a web browser:
++
+[source,sh]
+----
+$ oc get route etherpad-route -n etherpad -o jsonpath='{.spec.host}'
+----
++
+.Sample Output
+[source,sh]
+----
+etherpad-route-etherpad.apps.cluster-acmm1.red.osp.opentlc.com
+----
+
+== Remove Application
+
+At some point, you will need to remove an application from a cluster.
+This may be because the application is retired or, in a multi-cluster deployment, it no longer needs to be deployed to a specific cluster or clusters.
+Fortunately, removing an application from a target cluster is simple. 
+You have two choices.
+
+The first option is to remove the `Subscription` resource.
+When you do this, the `Subscription` resource and the application deployables that were pulled from the `Channel` resource are removed from the _hub_ cluster.
+As the change is propagated down to the _managed_ cluster, the `Subscription` resource and its associated resources are removed.
+You can see the Pods, Services, Deployments, and other resources being deleted just as if you had logged in and run an `oc delete...` command.
+Remember, if you delete the `Subscription` resource, it affects any cluster it is deployed to based on the `PlacementRule` resource.
+
+The second option is to remove or modify the `PlacementRule` resource that the `Subscription` resource is using to determine target clusters.
+If you do this, the `Subscription` resource updates to a new list of target clusters, which in this case is empty, leaving the application nowhere to run.
+Be careful with this option.
+If other `Subscription` resources are using the same `PlacementRule` resource, you may remove other applications by accident.
+
+In this lab, you remove the `Subscription` resource.
+
+. On the `bastion` VM in your _hub_ cluster, verify that you see the `Subscription` resource for the `etherpad-app` application.
+Specifically, observe the `metadata/annotations/apps.open-cluster-management.io/deployables` and `spec` sections of the `Subscription` resource:
+* The `deployables` list shows you the resources discovered in your repository that deploy to the _managed_ cluster.
+* The `spec` shows you where this `Subscription` deploys based on your `PlacementRule`.
++
+[source,sh]
+----
+$ oc get subscription etherpad-app -n etherpad -o yaml
+----
++
+.Sample Output
+[source,yaml]
+----
+apiVersion: apps.open-cluster-management.io/v1
+kind: Subscription
+metadata:
+  annotations:
+    apps.open-cluster-management.io/deployables: etherpad/etherpad-app-resources-etherpad-etherpad-route-route,etherpad/etherpad-app-resources-etherpad-etherpad-service,etherpad/etherpad-app-resources-etherpad-postgresql-deployment,etherpad/etherpad-app-resources-etherpad-ether-secret,etherpad/etherpad-app-resources-etherpad-etherpad-settings-configmap,etherpad/etherpad-app-resources-etherpad-etherpad-deployment <1>
+  labels:
+    app: etherpad-app
+    manager: multicluster-operators-subscription
+    operation: Update
+  name: etherpad-app
+  namespace: etherpad
+spec: <2>
+  channel: etherpad/etherpad-app-latest
+  placement:
+    placementRef:
+      kind: PlacementRule
+      name: dev-clusters
+status:
+  phase: Propagated
+  statuses:
+    my-openshift-cluster:
+
+...<output abridged>...
+----
++
+<1> This annotation lists all of the `Deployables` found in the Git repository associated with the `Subscription`.
+<2> The `spec` in your `Subscription` shows you the `Channel` and `PlacementRules` you have previously defined.
+
+. Delete your `Subscription` resource by running the following command on your _hub_ cluster:
++
+[source,sh]
+----
+$ oc delete subscription etherpad-app -n etherpad
+----
++
+.Sample Output
+[source,sh]
+----
+subscription.apps.open-cluster-management.io "etherpad-app" deleted
+----
+
+. From the `bastion` VM in your _managed_ cluster, or from the RHACM console, verify that your `Subscription` resource is gone, along with all of the deployed resources:
++
+[source,sh]
+----
+$ oc get all -n etherpad
+----
++
+.Sample Output
+[source,sh]
+----
+No resources found in etherpad namespace.
+----
+
+. In the RHACM console, navigate to the *Overview* tab of the `etherpad-app` application and confirm that only the `Application` resource remains in the *Resource topology* section.
+
+. You need the application to be deployed for other labs, so recreate the `Subscription` resource.
+You can do this via the CLI or by navigating to the *Resources* tab for the `etherpad-app` application in the RHACM console and clicking *Subscription* on the right side of the screen.
+Use the following YAML content:
++
+[source,yaml]
+----
+apiVersion: apps.open-cluster-management.io/v1
+kind: Subscription
+metadata:
+  name: etherpad-app
+  namespace: etherpad
+  labels:
+    app: etherpad-app
+  annotations:
+    apps.open-cluster-management.io/github-path: resources/etherpad
+spec:
+  channel: etherpad/etherpad-app-latest
+  placement:
+    placementRef:
+      kind: PlacementRule
+      name: dev-clusters
+----
++
+[NOTE]
+====
+If you use the RHACM console, replace everything in the YAML editor with the content above.
+====
+
+* After a few minutes, expect to see your application redeploy to the target cluster.
+
+== Change Deployed Application (Optional)
+
+What happens if you need to update an application that is already deployed?
+Making changes directly on the target cluster results in a system that is out of sync (worst case) or changes that get overwritten and reverted back to their original values defined by the deployables from the `Channel` resource.
+The appropriate method is to make changes to the manifests stored in your repository.
+Once those changes are made, you commit and push them to the Git repository.
+From there, let RHACM take over and make sure they get deployed.
+
+This exercise is optional.
+
+. In the local clone of your forked GitHub repository, create a new file that defines a persistent volume claim (PVC) for your database and save the file as `$HOME/rhacm-labs/resources/etherpad/postgres_pvc.yaml`:
++
+[source,yaml]
+----
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  labels:
+    template: postgresql-persistent-template
+  name: postgresql
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+----
+
+. You have defined a PVC to use, but now you need to update the `Deployment` manifest for PostgreSQL.
+Edit the `$HOME/rhacm-labs/resources/etherpad/postgres_deployment.yaml` file, replacing the existing `postgresql-data` volume with the following content:
++
+[TIP]
+====
+You can find this section at the very end of the file.
+====
++
+[source,yaml]
+----
+...
+volumes:
+- name: postgresql-data
+  persistentVolumeClaim:
+    claimName: postgresql
+----
+. Save the file.
+
+. Commit and push both of your changes to your GitHub repository:
++
+[source,sh]
+----
+$ cd $HOME/rhacm-labs
+$ git add resources/etherpad/postgres_pvc.yaml resources/etherpad/postgres_deployment.yaml
+$ git commit -m 'update postgres pvc and deployment'
+$ git push origin master
+----
+
+. On the `bastion` VM in your _managed_ cluster, check on your Pods.
+Note that after a minute or so, the `postgresql` Pod moves into a `Terminating` state because the `Deployment` resource was updated, and a new Pod starts using the PVC you provisioned.
++
+[source,sh]
+----
+$ oc get pod,pvc -n etherpad
+----
++
+.Sample Output
+[source,sh,options="nowrap"]
+----
+NAME                              READY   STATUS    RESTARTS   AGE
+pod/etherpad-5ccc6bdc6d-xr8nw     1/1     Running   2          67m
+pod/postgresql-6df558f94c-djbvp   1/1     Running   0          5m42s
+
+NAME                               STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   AGE
+persistentvolumeclaim/postgresql   Bound    pvc-f4ccd5b8-e9ce-4348-a32b-ad38192fc697   10Gi       RWO            standard       21m
+----
+
+. Optionally, you can watch for the new resources in the RHACM console.
+* Expect to see the new `PVC` resource appear in the topology view.
+The deployables for both the `PVC` resource and the PostgreSQL `Deployment` resource are updated.
+
+You have now employed a GitOps approach to deploying and updating an application.
+By storing your configuration in a Git repository, you were able to make changes to it simply by pushing a small change.
+
+== Summary
+
+You have now completed the overview of the Application Lifecycle functionality in RHACM.
+
+You successfully deployed an application to a target cluster using RHACM.
+This approach leveraged a Git repository which housed all of the manifests that defined your application.
+RHACM was able to take those manifests and use them as deployables, which were then deployed to the target cluster.
+
+You also removed a deployed application.
+
+If you completed the optional portion of the lab, you updated a running application by updating the manifests that were stored in the Git repository.
+While you did log in to the target cluster to see what happened, if you were deploying these types of changes en masse to many target clusters, this step would not be necessary.
