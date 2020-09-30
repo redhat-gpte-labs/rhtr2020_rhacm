@@ -1,6 +1,7 @@
 :guid: %guid%
 :user: %user%
 :markup-in-source: verbatim,attributes,quote
+:imagesdir: images
 
 == Cluster Lifecycle Lab
 

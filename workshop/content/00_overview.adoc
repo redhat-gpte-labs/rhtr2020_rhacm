@@ -1,6 +1,7 @@
 :guid: %guid%
 :user: %user%
 :markup-in-source: verbatim,attributes,quotes
+:imagesdir: images
 
 == Overview
 
@@ -23,10 +24,10 @@ Each of these sections is covered in a separate lab.
 Here is some important information about your environment:
 
 * Your GUID is: *%guid%*
-* Your OpenShift username is: *%ocp_username%*
-* Your OpenShift password is your OpenTLC Password
+* Your OpenShift username is: *admin*
+* Your OpenShift password will be provided
 
-* To log into OpenShift use the following command: *%login_command%*
+* The OpenShift API is at: *%api_url%*
 * The OpenShift Web Console is at: *%web_console_url%*
-* The RHACM Console is at: *%rhacm_console_url%*
+* The RHACM Console is at: *%acm_route%*
 ====

@@ -1,6 +1,7 @@
 :guid: %guid%
 :user: %user%
 :markup-in-source: verbatim,attributes,quotes
+:imagesdir: images
 
 == Application Lifecycle Lab
 
