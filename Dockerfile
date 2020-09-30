@@ -1,5 +1,7 @@
 FROM quay.io/openshifthomeroom/workshop-dashboard:5.0.0
 
+ENV OCP_CLIENT_RELEASE=4.5.11
+
 USER root
 
 COPY . /tmp/src
