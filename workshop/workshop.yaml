@@ -1,5 +1,5 @@
 ---
-name: RHTR RHACM
+name: Red Hat Advanced Cluster Management for Kubernetes
 modules:
   activate:
     - 00_overview
