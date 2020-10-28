@@ -3,7 +3,7 @@
 :markup-in-source: verbatim,attributes,quote
 :imagesdir: images
 
-== Cluster Lifecycle Lab
+== Lab Overview
 
 In this lab, you explore the Cluster Lifecycle capabilities of Red Hat^(R)^ Advanced Cluster Management for Kubernetes (RHACM).
 
@@ -85,20 +85,14 @@ a|* How can I manage the life cycle of multiple clusters regardless of where the
 The labs in this course require you to perform several tasks through the RHACM console.
 Because RHACM has been provisioned for you, follow the steps below to retrieve the information you need to perform the tasks.
 
-. Use the URL from your provisioning email to navigate to the RHACM console in a web browser.
+. Use the following URL to navigate to the RHACM console in a web browser:
 +
-[NOTE]
-====
-The URL is specific to your environment because you are using dedicated clusters.
-You can find it in the provisioning email you received from OPENTLC. Expect it to be similar to this:
-
 [source,sh]
-----
-https://multicloud-console.apps.cluster-$GUID.elt.opentlc.com
-----
+====
+https://%acm_route%
 ====
 
-. Log in to the RHACM console using the *admin* credentials provided in the email.
+. Log in to the RHACM console using the *admin* credentials provided in the _hub_ provisioning email.
 +
 [TIP]
 RHACM uses integrated authentication with the OpenShift cluster it is running on, so you use the same account you use to log in to OpenShift.
@@ -116,6 +110,14 @@ image:acm_cluster_lifecycle_create_2.png[width=100%]
 . Fill out the form with the information provided below:
 
 * *Cluster name*: `my-new-cluster`
++
+[NOTE]
+====
+The cluster name is just a way to identify this cluster in RHACM.
+It has no relation to any name or ID that might be associated with the actual cluster.
+Ideally, the cluster name should be used as a descriptive marker familiar within your organization.
+====
++
 * *Distribution*: `Red Hat OpenShift`
 * *Infrastructure*: `Amazon Web Services`
 * *Release Image*: `Select the latest openshift image from quay.io`
@@ -127,90 +129,49 @@ image:acm_cluster_lifecycle_create_3.png[width=100%]
 * *Provider*: `Amazon Web Services`
 * *Connection Name*: `aws`
 * *Namespace*: `default`
-* *Base DNS Domain*: `enter info`
+* *Base DNS Domain*: `sandboxNNN.opentlc.com`
++
+TIP: You will find the value for your _Base DNS Domain_ in the provisioning email for the *ACM Cluster Managed 2* catalog item.
++
+* *AWS Access Key ID*: <your access key>
+* *AWS Secret Access Key ID*: <your secret access key>
++
+TIP: You will find the values for your AWS credentials in the provisioning email for the *ACM Cluster Managed 2* catalog item.
++
+* *Red Hat OpenShift Pull Secret*: Copy your pull secret from link:https://cloud.redhat.com/openshift/install/pull-secret[^].
+* *SSH Private Key*: Your SSH private key
+* *SSH Public Key*: Your SSH public key.
+This will be added as an `authorized_key` on the OpenShift nodes.
 
-. Using the credentials provided earlier, fill out the AWS Access Key and Secrets. Click **Create**.
 . Select the newly created **Provider Connection**.
 . The rest of the information will auto fill, verify that it does. Click **Create**.
 . Take a moment to understand what you are setting up here:
 
-* The cluster name is just a way to identify this cluster in RHACM.
-It has no relation to any name or ID that might be associated with the actual cluster.
-Ideally, the cluster name should be used as a descriptive marker familiar within your organization.
-
 [NOTE]
 ====
-The creation of a cluster usually takes **10-15 minutes**, you can skip the next step if the cluster is not done by the time you are done reading the instructions
+The creation of a cluster takes approximately 30-45 minutes.
 ====
-
-=== Explore The Newly Created Cluster
-
-. Now that your cluster is created, switch back to the RHACM console and click *View cluster* at the top of the screen to be taken to an overview of your newly created cluster.
-
-* This is the starting point to interact more closely with your Kubernetes cluster.
-
-* Expect your screen to look similar to this, with obvious differences being the value for *Console URL*:
-// * Expect your screen to look similar to this, with obvious differences being the values for *Cluster API address* and *Console URL*:
-+
-image:acm_cluster_lifecycle_create_4.png[width=100%]
-
-. Take a moment to explore some of the options available on this page:
-
-* You can both view and edit the *Labels*.
-* You can find the connection information for the OpenShift web console.
-// * You can find the connection information for both the OpenShift API and OpenShift web console.
-* You can see information about applications and policies applied to this cluster.
-While this is currently empty, you revisit it later and see the difference.
-
-. Click the *Nodes* tab to see a list of nodes that comprise your _managed_ cluster:
-+
-image:acm_cluster_lifecycle_create_5.png[width=100%]
-
-* Note that this view shows more information about the underlying VM types.
-
 
 == Import Cluster to RHACM Console
 
-The labs in this course require you to perform several tasks through the RHACM console.
+These labs require you to perform several tasks through the RHACM console.
 Because RHACM has been provisioned for you, follow the steps below to retrieve the information you need to perform the tasks.
 
-. Use the URL from your provisioning email to navigate to the RHACM console in a web browser.
-+
-[NOTE]
-====
-The URL is specific to your environment because you are using dedicated clusters.
-You can find it in the provisioning email you received from OPENTLC. Expect it to be similar to this:
-
-[source,sh]
-----
-https://multicloud-console.apps.cluster-$GUID.elt.opentlc.com
-----
-====
-
-. Log in to the RHACM console using the *admin* credentials provided in the email.
-+
-[TIP]
-RHACM uses integrated authentication with the OpenShift cluster it is running on, so you use the same account you use to log in to OpenShift.
-
-* Expect to see general product information as well as direct links to the sections discussed earlier.
-
-. Because this lab is focused on Cluster Lifecycle, click *Go to Clusters* to see a page that displays the clusters RHACM is managing. Note that in this case, the page is currently empty.:
-+
-image:acm_cluster_lifecycle_link.png[width=100%]
-
-. Select *Import an existing cluster* from the *Add cluster* list:
+. In the RHACM console, select *Import an existing cluster* from the *Add cluster* list:
 +
 image:acm_cluster_lifecycle_create_1.png[width=100%]
 +
 [NOTE]
+====
 Remember that you can import any Kubernetes cluster. You are not limited to OpenShift, although that is what you manage and use in this lab.
+====
 
 . Fill out the form with the information provided below:
 
 * *Cluster name*: `my-openshift-cluster`
 * *Cloud*: `auto-detect`
 * *Environment*: `dev`
-* *Additional labels*: `guid=<your _managed_ cluster's GUID>`
+* *Additional labels*: Leave this blank
 
 . Take a moment to understand what you are setting up here:
 
@@ -221,8 +182,7 @@ Ideally, the cluster name should be used as a descriptive marker familiar within
 In this case, you are identifying the cluster you are importing by its GUID and an environment label.
 That is, the GUID of the _managed_ cluster, not the GUID of the _hub_ cluster.
 Labels are extremely important and are used heavily when you work with Application Lifecycle and GRC, which are covered in later labs.
-
-** It is best to plan out and design your labeling taxonomy in advance to consider usage for targeting workloads and policies.
+* It is best to plan out and design your labeling taxonomy in advance to consider usage for targeting workloads and policies.
 You can add labels after a cluster is deployed or imported (and you probably will), but try to limit this to new requirements that arise.
 
 . Next you instruct RHACM to generate a command that you can run to import the cluster. Confirm that your form looks like this, then click Generate command at the top of the page::
@@ -238,13 +198,14 @@ You will use this in a subsequent step.
 . Leave the new page open so you can come back in a few minutes to copy the command.
 
 . Open a terminal window and use SSH to access the `bastion` VM of your _managed_ OpenShift cluster.
-* The connection information and credentials are in the provisioning email you received for your _managed_ cluster.
+* You will find the connection information and credentials for the `RHEL Bastion Host` in the provisioning email for the *ACM Cluster Managed 1* catalog item.
 +
 [WARNING]
 ====
 Pay very close attention to which cluster you connect to.
 Remember that you _cannot_ import the _hub_ cluster as a _managed_ cluster.
 ====
+
 . Verify that you are an OpenShift `cluster-admin` for your _managed_ cluster:
 +
 [source,sh]
@@ -347,6 +308,8 @@ klusterlet-addon-policyctrl-framework-57f8f59fcd-7qfcf       3/3     Running   0
 klusterlet-addon-search-84c97f47b5-5d7t8                     1/1     Running   0          3m15s
 klusterlet-addon-workmgr-9d9ff6c4-qrvn5                      1/1     Running   0          3m15s
 ----
++
+WARNING: It may take several minutes for all of the addon Pods to be deployed.
 
 === Explore Imported Cluster
 
@@ -370,6 +333,31 @@ While this is currently empty, you revisit it later and see the difference.
 . Click the *Nodes* tab to see a list of nodes that comprise your _managed_ cluster:
 +
 image:acm_cluster_lifecycle_import_4_aws.png[width=100%]
+
+* Note that this view shows more information about the underlying VM types.
+
+=== Explore The Newly Created Cluster
+
+. Now that your cluster is created, switch back to the RHACM console and click *View cluster* at the top of the screen to be taken to an overview of your newly created cluster.
+
+* This is the starting point to interact more closely with your Kubernetes cluster.
+
+* Expect your screen to look similar to this, with obvious differences being the value for *Console URL*:
+// * Expect your screen to look similar to this, with obvious differences being the values for *Cluster API address* and *Console URL*:
++
+image:acm_cluster_lifecycle_create_4.png[width=100%]
+
+. Take a moment to explore some of the options available on this page:
+
+* You can both view and edit the *Labels*.
+* You can find the connection information for the OpenShift web console.
+// * You can find the connection information for both the OpenShift API and OpenShift web console.
+* You can see information about applications and policies applied to this cluster.
+While this is currently empty, you revisit it later and see the difference.
+
+. Click the *Nodes* tab to see a list of nodes that comprise your _managed_ cluster:
++
+image:acm_cluster_lifecycle_create_5.png[width=100%]
 
 * Note that this view shows more information about the underlying VM types.
 

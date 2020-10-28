@@ -3,7 +3,7 @@
 :markup-in-source: verbatim,attributes,quotes
 :imagesdir: images
 
-== GRC Lab
+== Lab Overview
 
 In this lab, you explore the Governance, Risk, and Compliance (GRC) capabilities of Red Hat^(R)^ Advanced Cluster Management for Kubernetes (RHACM).
 

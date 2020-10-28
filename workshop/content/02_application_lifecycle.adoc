@@ -3,7 +3,7 @@
 :markup-in-source: verbatim,attributes,quotes
 :imagesdir: images
 
-== Application Lifecycle Lab
+== Lab Overview
 
 In this lab, you explore the Application Lifecycle capabilities of Red Hat^(R)^ Advanced Cluster Management for Kubernetes (RHACM).
 
