@@ -95,8 +95,7 @@ objects:
                   value: ${AUTH_PASSWORD}
                 - name: CLUSTER_SUBDOMAIN
                 - name: CONSOLE_URL
-                  # value: http://0.0.0.0:10083
-                  value: https://{{ acm_route }}
+                  value: http://0.0.0.0:10083
                 - name: OAUTH_SERVICE_ACCOUNT
                   value: ${NAME}
                 - name: DOWNLOAD_URL
