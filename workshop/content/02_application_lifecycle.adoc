@@ -194,14 +194,14 @@ apiVersion: app.k8s.io/v1beta1
 kind: Application
 metadata:
   name: etherpad-app
-  namespace: etherpad <1>
+  namespace: etherpad
 spec:
   componentKinds:
   - group: apps.open-cluster-management.io
     kind: Subscription
   descriptor: {}
   selector:
-    matchExpressions: <3>
+    matchExpressions:
     - key: app
       operator: In
       values:
@@ -337,7 +337,7 @@ $ oc get route etherpad-route -n etherpad -o jsonpath='{.spec.host}'
 etherpad-route-etherpad.apps.cluster-acmm1.red.osp.opentlc.com
 ----
 
-== Deploying the Application to another Clusters
+== Deploying the Application to another Cluster
 Now that your application was deployed to the imported cluster, let's attempt to deploy it to the cluster we created in AWS.
 
 . Navigate to the *Cluster* view in ACM
