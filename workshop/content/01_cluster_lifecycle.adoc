@@ -144,13 +144,12 @@ TIP: You will find the values for your AWS credentials in the provisioning email
 This will be added as an `authorized_key` on the OpenShift nodes.
 
 . Select the newly created **Provider Connection**.
+. Select the node pools and expand it. Change the default provisoning zone from *us-east-1* to *us-west-1*
 . The rest of the information will auto fill, verify that it does. Click **Create**.
-. Take a moment to understand what you are setting up here:
 
 [NOTE]
 ====
-The creation of a cluster takes approximately 30-45 minutes.
-If the deployment fails, please re-try in a different AWS zone (us-west-1)
+The creation of a cluster takes approximately 30-45 minutes, it can take longer depending on demand. Please continue with the rest of the lab.
 ====
 
 == Import Cluster to RHACM Console
@@ -198,7 +197,7 @@ You will use this in a subsequent step.
 
 . Leave the new page open so you can come back in a few minutes to copy the command.
 
-. Open a terminal window and use SSH to access the `bastion` VM of your _managed_ OpenShift cluster. You can also use the Terminal within the Bastion host.
+. Open a terminal window and use SSH to access the `bastion` VM of your _managed_ OpenShift cluster. You can also use the Terminal within the Bookback instructions.
 * You will find the connection information and credentials for the `RHEL Bastion Host` in the provisioning email for the *ACM Cluster Managed 1* catalog item.
 +
 [WARNING]
