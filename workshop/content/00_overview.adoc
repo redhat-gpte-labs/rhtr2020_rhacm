@@ -28,6 +28,6 @@ For your convenience, some of the information is also included below and through
 * Your OpenShift username is: *admin*
 * Your OpenShift password is provided in the ACM Hub provisioning email
 
-* The OpenShift API is at: *%api_url.stdout%*
-* The OpenShift Web Console is at: *%web_console_url.stdout%*
+* The OpenShift API is at: *%api_url%*
+* The OpenShift Web Console is at: *%web_console_url%*
 * The RHACM Console is at: *%acm_route%*
