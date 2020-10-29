@@ -3,11 +3,39 @@
 
 == Review
 
-Hopefully you learned a few things in this lab:
+Thank you so much for taking this lab with us, Hopefully you learned a few things in this lab:
 
-* Thing one
-* Thing two
+* The value of Advanced Cluster Management for Kubernetes (ACM) and OpenShift (OCP) working together to bring a seamless experience in
+a modern application workloads
+* How to import and create clusters in any cloud.
+* How to work with Applications and deploy them to more than one cluster.
+* Working with policies to secure your kubernetes environment.
 
-For more information... etc...
+For more information around Advanced Cluster Management for Kubernetes, please visit the following links:
+
+Webpage
+====
+https://red.ht/34LmON7
+====
+YouTube Playlist
+====
+https://bit.ly/31LCRZr
+====
+Datasheet
+====
+https://red.ht/3hLuouO
+====
+Infographic
+====
+https://red.ht/2YPFmb8
+====
+RHCAM Blogs
+====
+https://red.ht/34Fd3Q1
+====
+External FAQ
+====
+https://red.ht/3hLomKE
+====
 
 Thank you!
