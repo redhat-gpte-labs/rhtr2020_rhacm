@@ -37,10 +37,10 @@ This table describes the different components that the Application Lifecycle mod
 |`Subscription`
 |Definitions that identify deployable resources available in a `Channel` resource that are to be deployed to a target cluster.
 |`PlacementRule`
-|Defines the target clusters where subscriptions deploy and maintain the application. 
+|Defines the target clusters where subscriptions deploy and maintain the application.
 It is composed of Kubernetes resources identified by the `Subscription` resource and pulled from the location defined in the `Channel` resource.
 |`Application`
-|A way to group the components here into a more easily viewable single resource. 
+|A way to group the components here into a more easily viewable single resource.
 An `Application` resource typically references a `Subscription` resource.
 |====
 
@@ -72,9 +72,9 @@ a|* I want to quickly investigate application relationships with real-time statu
 
 == Create Application in RHACM
 Now that you have an idea of what the Application Lifecycle capabilities are in RHACM, it is time to deploy a simple application to your _managed_ cluster.
-You deploy to only a single target cluster in this lab, but you can adapt what you learn to environments with a larger number of clusters.
+In this lab we will deploy an application to both clusters the one we imported and the one we created, we will start with the imported cluster.
 
-The application you deploy in this lab is called *Etherpad*. 
+The application you deploy in this lab is called *Etherpad*.
 It is a simple application with front-end and back-end components.
 
 To make this lab easier to follow, some creation steps are done via the CLI on the `bastion` VM of your _hub_ cluster.
@@ -168,7 +168,7 @@ $ sed -i "s/redhat-gpte-devopsautomation/${GITHUB_ID}/g" $HOME/rhacm-labs/apps/e
 +
 [NOTE]
 ====
-For convenience, the resources are displayed in a single file here, but they can be three separate manifests as well. 
+For convenience, the resources are displayed in a single file here, but they can be three separate manifests as well.
 Also, you can create these resources one by one in any order you want.
 ====
 +
@@ -255,7 +255,7 @@ subscription.apps.open-cluster-management.io/etherpad-app created
 +
 [NOTE]
 ====
-It may take a few minutes for the RHACM console to update and show the application. 
+It may take a few minutes for the RHACM console to update and show the application.
 Refresh the page in your browser after a few minutes.
 ====
 
@@ -270,7 +270,7 @@ image:acm_app_lifecycle_resources_initial.png[width=100%]
 
 == Deploy Application
 
-Now that your application and all of its associated components are created, you are ready to deploy to a target cluster. 
+Now that your application and all of its associated components are created, you are ready to deploy to a target cluster.
 But you still need to instruct RHACM _where_ to deploy your application and, more specifically, your `Subscription` resource.
 The lack of this direction is why your `Subscription` resource is currently in a _Failed_ state.
 
@@ -337,11 +337,33 @@ $ oc get route etherpad-route -n etherpad -o jsonpath='{.spec.host}'
 etherpad-route-etherpad.apps.cluster-acmm1.red.osp.opentlc.com
 ----
 
+== Deploying the Application to another Clusters
+Now that your application was deployed to the imported cluster, let's attempt to deploy it to the cluster we created in AWS.
+
+. Navigate to the *Cluster* view in ACM
+. Click on the AWS cluster we build earlier *my-new-cluster*
+. From the Actions menu, select *Edit labels*. Assign the label *environment=dev*. Click Add and Done.
+
+image:acm_cluster_lifecycle_labels.png[width=100%]
+
+. Navigate to the Application menu and select the *etherpad-app*.
+. Notice how the topology view now has 2 clusters
+
+image:acm_app_lifecycle_application_updated.png[width=100%]
+
+. Take a moment to understand what you are setting up here:
+
+[NOTE]
+====
+You have used the power of labels to scale out an application in a seamless way. You can scale out or spread out your application as much as you would like.
+====
+
+
 == Remove Application
 
 At some point, you will need to remove an application from a cluster.
 This may be because the application is retired or, in a multi-cluster deployment, it no longer needs to be deployed to a specific cluster or clusters.
-Fortunately, removing an application from a target cluster is simple. 
+Fortunately, removing an application from a target cluster is simple.
 You have two choices.
 
 The first option is to remove the `Subscription` resource.
@@ -546,7 +568,7 @@ You successfully deployed an application to a target cluster using RHACM.
 This approach leveraged a Git repository which housed all of the manifests that defined your application.
 RHACM was able to take those manifests and use them as deployables, which were then deployed to the target cluster.
 
-You also removed a deployed application.
+You also leverage the power of labels and deploy the application to another cluster. you have also removed a deployed application.
 
 If you completed the optional portion of the lab, you updated a running application by updating the manifests that were stored in the Git repository.
 While you did log in to the target cluster to see what happened, if you were deploying these types of changes en masse to many target clusters, this step would not be necessary.
