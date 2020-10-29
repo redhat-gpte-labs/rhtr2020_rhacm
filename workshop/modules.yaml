@@ -9,7 +9,7 @@ modules:
   02_application_lifecycle:
     name: Application Lifecycle
     exit_sign: Continue
-  03_GRC:
+  03_grc:
     name: GRC
     exit_sign: Continue
   04_review:
