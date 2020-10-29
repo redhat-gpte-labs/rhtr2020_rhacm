@@ -23,7 +23,7 @@ Your _hub_ cluster only does one thing--it runs RHACM.
 All of the RHACM components that provide functionality for the Cluster Lifecycle, Application Lifecycle, and Governance, Risk, and Compliance (GRC) features run on this cluster.
 Your _hub_ cluster _cannot_ be _managed_.
 If you were to try to add the _hub_ cluster as a _managed_ cluster, you would see an error message and that action would be prevented.
-Do not attempt this. Later versions of RHACM will allow you to manage the Hub clusters.
+Do not attempt this. The later version of RHACM (2.1) will allow you to manage the Hub clusters.
 
 Your _managed_ cluster also does one thing--it runs your workloads.
 Customer application workloads are obviously going to run here, but _managed_ clusters also run the RHACM endpoint components.
@@ -50,7 +50,7 @@ The Cluster Lifecycle feature in RHACM allows you to manage the deployment, dele
 
 * Deploying new OpenShift clusters to supported platforms.
 This includes Amazon Web Services, Microsoft Azure, and Google Cloud.
-Bare metal is included as a tech preview feature.
+Bare metal is included as a tech preview feature in 2.0. For 2.1 we will have made this feature GA and add vSphere as a supported deploying platform.
 * Deleting or destroying an OpenShift cluster that was deployed by RHACM.
 You cannot destroy a cluster that you imported, but you can remove it from RHACM if you no longer want to manage it.
 * Importing existing Kubernetes clusters.
@@ -150,6 +150,7 @@ This will be added as an `authorized_key` on the OpenShift nodes.
 [NOTE]
 ====
 The creation of a cluster takes approximately 30-45 minutes.
+If the deployment fails, please re-try in a different AWS zone (us-west-1)
 ====
 
 == Import Cluster to RHACM Console
@@ -197,7 +198,7 @@ You will use this in a subsequent step.
 
 . Leave the new page open so you can come back in a few minutes to copy the command.
 
-. Open a terminal window and use SSH to access the `bastion` VM of your _managed_ OpenShift cluster.
+. Open a terminal window and use SSH to access the `bastion` VM of your _managed_ OpenShift cluster. You can also use the Terminal within the Bastion host.
 * You will find the connection information and credentials for the `RHEL Bastion Host` in the provisioning email for the *ACM Cluster Managed 1* catalog item.
 +
 [WARNING]
